@@ -53,8 +53,12 @@ public class CatalogActivity extends AppCompatActivity {
         });
 
         mDbHelper = new PetDbHelper(this);
-        displayDatabaseInfo();
+    }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        displayDatabaseInfo();
     }
 
     /**
