@@ -118,7 +118,7 @@ public class PetProvider extends ContentProvider {
         if (newRowId == -1) {
             Log.e(LOG_TAG, "Failed to insert row for " + uri.toString());
         }
-
+        
         // publish change happen
         getContext().getContentResolver().notifyChange(uri, null);
         return ContentUris.withAppendedId(uri, newRowId);
@@ -178,6 +178,7 @@ public class PetProvider extends ContentProvider {
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         newRowId = db.update(PetEntry.TABLE_NAME, values, selection, selectionArgs);
 
+        // TODO: 07.05.17 Impl Check with the rowId
         // publish change happen
         getContext().getContentResolver().notifyChange(uri, null);
         return newRowId;
@@ -194,6 +195,7 @@ public class PetProvider extends ContentProvider {
             case PETS:
                 // Delete all rows that match the selection and selection args
                 rowId = database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                // TODO: 07.05.17 Impl Check with the rowId
                 // publish change happen
                 getContext().getContentResolver().notifyChange(uri, null);
                 return rowId;
@@ -202,6 +204,7 @@ public class PetProvider extends ContentProvider {
                 selection = PetEntry._ID + "=?";
                 selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
                 rowId = database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                // TODO: 07.05.17 Impl Check with the rowId
                 // publish change happen
                 getContext().getContentResolver().notifyChange(uri, null);
                 return rowId;
