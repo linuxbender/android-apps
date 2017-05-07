@@ -15,12 +15,12 @@ public class PetDbHelper extends SQLiteOpenHelper {
     private static final int DB_VERSION = 1;
     private static final String DB_NAME = "pet.db";
 
-    private static final String SQL_CREATE_ENTRIES = "CREATE TABLE "+ PetEntry.TABLE_NAME+" (" +
-            PetEntry._ID+" INTEGER PRIMARY KEY AUTOINCREMENT," +
-            PetEntry.COLUMN_PET_NAME+" TEXT NOT NULL," +
-            PetEntry.COLUMN_PET_BREED+" TEXT," +
-            PetEntry.COLUMN_PET_GENDER+" INTEGER NOT NULL," +
-            PetEntry.COLUMN_PET_WEIGHT+" INTEGER NOT NULL DEFAULT 0)";
+    private static final String SQL_CREATE_ENTRIES = "CREATE TABLE " + PetEntry.TABLE_NAME + " (" +
+            PetEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+            PetEntry.COLUMN_PET_NAME + " TEXT NOT NULL," +
+            PetEntry.COLUMN_PET_BREED + " TEXT," +
+            PetEntry.COLUMN_PET_GENDER + " INTEGER NOT NULL," +
+            PetEntry.COLUMN_PET_WEIGHT + " INTEGER NOT NULL DEFAULT 0)";
 
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + PetEntry.TABLE_NAME;
