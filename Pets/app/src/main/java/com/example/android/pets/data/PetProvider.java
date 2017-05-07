@@ -12,8 +12,6 @@ import android.util.Log;
 
 import com.example.android.pets.data.PetContract.PetEntry;
 
-import static android.R.attr.id;
-
 /**
  * {@link ContentProvider} for Pets app.
  */
@@ -90,13 +88,29 @@ public class PetProvider extends ContentProvider {
     }
 
     private Uri insertPet(Uri uri, ContentValues values) {
+        long newRowId = -1;
+        // Check that the name is not null
+        String name = values.getAsString(PetEntry.COLUMN_PET_NAME);
+        if (name == null) {
+            throw new IllegalArgumentException("Pet requires a name");
+        }
+
+        Integer weight = values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT);
+        if (weight != null && weight < 0) {
+            throw new IllegalArgumentException("Pet requires valid weight");
+        }
+
+        Integer gender = values.getAsInteger(PetEntry.COLUMN_PET_GENDER);
+        if (gender == null || !PetEntry.isValidGender(gender)) {
+            throw new IllegalArgumentException("Pet requires valid gender");
+        }
 
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
-        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
+        newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
         // Once we know the ID of the new row in the table,
         // return the new URI with the ID appended to the end of it
-        if (id == -1) {
-            Log.e(LOG_TAG, "Failed to insert row for " + uri);
+        if (newRowId == -1) {
+            Log.e(LOG_TAG, "Failed to insert row for " + uri.toString());
         }
         return ContentUris.withAppendedId(uri, newRowId);
     }
