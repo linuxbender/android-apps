@@ -1,22 +1,20 @@
 package com.example.android.pets.data;
 
+import android.net.Uri;
 import android.provider.BaseColumns;
 
 public final class PetContract {
 
-    /*
-    CREATE TABLE pets (
-       _id INTEGER PRIMARY KEY AUTOINCREMENT,
-       name TEXT NOT NULL,
-       breed TEXT,
-       gender INTEGER NOT NULL,
-       weight INTEGER NOT NULL DEFAULT 0);
 
-     */
+    public static final String CONTENT_AUTHORITY = "com.example.android.pets";
+    public static final Uri BASE_CONTENT_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
+    public static final String PATH_PETS = "pets";
 
     private PetContract() {}
 
     public static class PetEntry implements BaseColumns {
+
+        public static final Uri CONTENT_URI = Uri.withAppendedPath(BASE_CONTENT_URI, PATH_PETS);
 
         public static final String TABLE_NAME = "pets";
 
