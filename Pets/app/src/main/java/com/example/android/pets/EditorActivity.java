@@ -45,35 +45,28 @@ import com.example.android.pets.data.PetContract.PetEntry;
 public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     public static final String LOG_TAG = EditorActivity.class.getSimpleName();
-
+    private static final int PET_LOADER = 0;
     /**
      * EditText field to enter the pet's name
      */
     private EditText mNameEditText;
-
     /**
      * EditText field to enter the pet's breed
      */
     private EditText mBreedEditText;
-
     /**
      * EditText field to enter the pet's weight
      */
     private EditText mWeightEditText;
-
     /**
      * EditText field to enter the pet's gender
      */
     private Spinner mGenderSpinner;
-
     /**
      * Gender of the pet. The possible values are:
      * 0 for unknown gender, 1 for male, 2 for female.
      */
     private int mGender = 0;
-
-    private static final int PET_LOADER = 0;
-
     private Uri currentPetUri;
 
     @Override
@@ -172,13 +165,27 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     }
 
     private void savePet() {
+
+        // fail fast return - all values are not set
+        if (currentPetUri == null && TextUtils.isEmpty(mNameEditText.getText().toString().trim()) &&
+                TextUtils.isEmpty(mBreedEditText.getText().toString().trim()) &&
+                TextUtils.isEmpty(mWeightEditText.getText().toString().trim()) &&
+                mGender == PetEntry.GENDER_UNKNOWN)
+            return;
+
         ContentValues values = new ContentValues();
         values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
         values.put(PetEntry.COLUMN_PET_BREED, mBreedEditText.getText().toString().trim());
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
-        values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
+
+        if (TextUtils.isEmpty(mWeightEditText.getText().toString().trim())) {
+            values.put(PetEntry.COLUMN_PET_WEIGHT, PetEntry.GENDER_UNKNOWN);
+        } else {
+            values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
+        }
 
         if (currentPetUri == null) {
+            // insert
             Uri uri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
             Log.v(LOG_TAG, uri.toString());
 
@@ -191,6 +198,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             }
 
         } else {
+            // update
             int rowAffected = getContentResolver().update(currentPetUri, values, null, null);
 
             if (rowAffected == 0) {
@@ -199,11 +207,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 Toast.makeText(this, getString(R.string.editor_update_pet_successful), Toast.LENGTH_SHORT).show();
             }
         }
-
-
-
-
-
     }
 
     @Override
@@ -216,12 +219,12 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 PetEntry.COLUMN_PET_GENDER,
                 PetEntry.COLUMN_PET_WEIGHT
         };
-        return new CursorLoader(this, currentPetUri,projection, null,null, null);
+        return new CursorLoader(this, currentPetUri, projection, null, null, null);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        if(data.moveToFirst()) {
+        if (data.moveToFirst()) {
             int nameColumnIndex = data.getColumnIndex(PetEntry.COLUMN_PET_NAME);
             int breedColumnIndex = data.getColumnIndex(PetEntry.COLUMN_PET_BREED);
             int genderColumnIndex = data.getColumnIndex(PetEntry.COLUMN_PET_GENDER);
@@ -252,6 +255,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-
+        if (loader.isReset()) {
+            loader.reset();
+        }
     }
 }
