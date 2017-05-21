@@ -106,11 +106,25 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
         if (currentPetUri == null) {
             setTitle(R.string.editor_activity_title_new_pet);
+            // remove delete option in the menu for insert new pet
+            invalidateOptionsMenu();
         } else {
             setTitle(R.string.editor_activity_title_edit_pet);
             getLoaderManager().initLoader(PET_LOADER, null, this);
         }
 
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        if (currentPetUri == null) {
+            MenuItem menuItem = menu.findItem(R.id.action_delete);
+            menuItem.setVisible(false);
+        }
+
+        return true;
     }
 
     @Override
