@@ -3,4 +3,5 @@
     <string name="scale">Scale</string>
     <string name="rotation">Rotation</string>
     <string name="translation">Translation</string>
+    <string name="force_icon">Force Icon</string>
 </resources>
