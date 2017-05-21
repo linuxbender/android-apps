@@ -19,17 +19,20 @@ import android.app.LoaderManager;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -69,6 +72,17 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     private int mGender = 0;
     private Uri currentPetUri;
 
+    // change tracking
+    private boolean petHasChanged = false;
+    private View.OnTouchListener onTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            petHasChanged = true;
+            return false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +93,11 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mBreedEditText = (EditText) findViewById(R.id.edit_pet_breed);
         mWeightEditText = (EditText) findViewById(R.id.edit_pet_weight);
         mGenderSpinner = (Spinner) findViewById(R.id.spinner_gender);
+
+        mNameEditText.setOnTouchListener(onTouchListener);
+        mBreedEditText.setOnTouchListener(onTouchListener);
+        mWeightEditText.setOnTouchListener(onTouchListener);
+        mGenderSpinner.setOnTouchListener(onTouchListener);
 
         setupSpinner();
 
@@ -92,45 +111,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             getLoaderManager().initLoader(PET_LOADER, null, this);
         }
 
-    }
-
-    /**
-     * Setup the dropdown spinner that allows the user to select the gender of the pet.
-     */
-    private void setupSpinner() {
-        // Create adapter for spinner. The list options are from the String array it will use
-        // the spinner will use the default layout
-        ArrayAdapter genderSpinnerAdapter = ArrayAdapter.createFromResource(this,
-                R.array.array_gender_options, android.R.layout.simple_spinner_item);
-
-        // Specify dropdown layout style - simple list view with 1 item per line
-        genderSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-
-        // Apply the adapter to the spinner
-        mGenderSpinner.setAdapter(genderSpinnerAdapter);
-
-        // Set the integer mSelected to the constant values
-        mGenderSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String selection = (String) parent.getItemAtPosition(position);
-                if (!TextUtils.isEmpty(selection)) {
-                    if (selection.equals(getString(R.string.gender_male))) {
-                        mGender = PetEntry.GENDER_MALE; // Male
-                    } else if (selection.equals(getString(R.string.gender_female))) {
-                        mGender = PetEntry.GENDER_FEMALE; // Female
-                    } else {
-                        mGender = PetEntry.GENDER_UNKNOWN; // Unknown
-                    }
-                }
-            }
-
-            // Because AdapterView is an abstract class, onNothingSelected must be defined
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                mGender = 0; // Unknown
-            }
-        });
     }
 
     @Override
@@ -162,51 +142,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void savePet() {
-
-        // fail fast return - all values are not set
-        if (currentPetUri == null && TextUtils.isEmpty(mNameEditText.getText().toString().trim()) &&
-                TextUtils.isEmpty(mBreedEditText.getText().toString().trim()) &&
-                TextUtils.isEmpty(mWeightEditText.getText().toString().trim()) &&
-                mGender == PetEntry.GENDER_UNKNOWN)
-            return;
-
-        ContentValues values = new ContentValues();
-        values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
-        values.put(PetEntry.COLUMN_PET_BREED, mBreedEditText.getText().toString().trim());
-        values.put(PetEntry.COLUMN_PET_GENDER, mGender);
-
-        if (TextUtils.isEmpty(mWeightEditText.getText().toString().trim())) {
-            values.put(PetEntry.COLUMN_PET_WEIGHT, PetEntry.GENDER_UNKNOWN);
-        } else {
-            values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
-        }
-
-        if (currentPetUri == null) {
-            // insert
-            Uri uri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
-            Log.v(LOG_TAG, uri.toString());
-
-            long newRowId = ContentUris.parseId(uri);
-
-            if (newRowId != -1) {
-                Toast.makeText(this, getString(R.string.editor_insert_pet_successful), Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
-            }
-
-        } else {
-            // update
-            int rowAffected = getContentResolver().update(currentPetUri, values, null, null);
-
-            if (rowAffected == 0) {
-                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, getString(R.string.editor_update_pet_successful), Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 
     @Override
@@ -258,5 +193,125 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         if (loader.isReset()) {
             loader.reset();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // fail fast
+        if (!petHasChanged) {
+            super.onBackPressed();
+            return;
+        }
+
+        DialogInterface.OnClickListener discardButtonClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        };
+        showUnsavedChangesDialog(discardButtonClickListener);
+    }
+
+    private void savePet() {
+
+        // fail fast return - all values are not set
+        if (currentPetUri == null && TextUtils.isEmpty(mNameEditText.getText().toString().trim()) &&
+                TextUtils.isEmpty(mBreedEditText.getText().toString().trim()) &&
+                TextUtils.isEmpty(mWeightEditText.getText().toString().trim()) &&
+                mGender == PetEntry.GENDER_UNKNOWN)
+            return;
+
+        ContentValues values = new ContentValues();
+        values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
+        values.put(PetEntry.COLUMN_PET_BREED, mBreedEditText.getText().toString().trim());
+        values.put(PetEntry.COLUMN_PET_GENDER, mGender);
+
+        if (TextUtils.isEmpty(mWeightEditText.getText().toString().trim())) {
+            values.put(PetEntry.COLUMN_PET_WEIGHT, PetEntry.GENDER_UNKNOWN);
+        } else {
+            values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
+        }
+
+        if (currentPetUri == null) {
+            // insert
+            Uri uri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+            Log.v(LOG_TAG, uri.toString());
+
+            long newRowId = ContentUris.parseId(uri);
+
+            if (newRowId != -1) {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_successful), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
+            }
+
+        } else {
+            // update
+            int rowAffected = getContentResolver().update(currentPetUri, values, null, null);
+
+            if (rowAffected == 0) {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, getString(R.string.editor_update_pet_successful), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Setup the dropdown spinner that allows the user to select the gender of the pet.
+     */
+    private void setupSpinner() {
+        // Create adapter for spinner. The list options are from the String array it will use
+        // the spinner will use the default layout
+        ArrayAdapter genderSpinnerAdapter = ArrayAdapter.createFromResource(this,
+                R.array.array_gender_options, android.R.layout.simple_spinner_item);
+
+        // Specify dropdown layout style - simple list view with 1 item per line
+        genderSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
+
+        // Apply the adapter to the spinner
+        mGenderSpinner.setAdapter(genderSpinnerAdapter);
+
+        // Set the integer mSelected to the constant values
+        mGenderSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selection = (String) parent.getItemAtPosition(position);
+                if (!TextUtils.isEmpty(selection)) {
+                    if (selection.equals(getString(R.string.gender_male))) {
+                        mGender = PetEntry.GENDER_MALE; // Male
+                    } else if (selection.equals(getString(R.string.gender_female))) {
+                        mGender = PetEntry.GENDER_FEMALE; // Female
+                    } else {
+                        mGender = PetEntry.GENDER_UNKNOWN; // Unknown
+                    }
+                }
+            }
+
+            // Because AdapterView is an abstract class, onNothingSelected must be defined
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                mGender = 0; // Unknown
+            }
+        });
+    }
+
+    private void showUnsavedChangesDialog(DialogInterface.OnClickListener discardButtonClickListener) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(R.string.unsaved_changes_dialog_msg);
+        builder.setPositiveButton(R.string.discard, discardButtonClickListener);
+        builder.setNegativeButton(R.string.keep_editing, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+
     }
 }
