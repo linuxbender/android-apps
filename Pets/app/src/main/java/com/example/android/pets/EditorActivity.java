@@ -154,7 +154,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                addPet();
+                savePet();
                 finish();
                 // Do nothing for now
                 return true;
@@ -171,23 +171,39 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         return super.onOptionsItemSelected(item);
     }
 
-    private void addPet() {
+    private void savePet() {
         ContentValues values = new ContentValues();
         values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
         values.put(PetEntry.COLUMN_PET_BREED, mBreedEditText.getText().toString().trim());
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
         values.put(PetEntry.COLUMN_PET_WEIGHT, Integer.parseInt(mWeightEditText.getText().toString().trim()));
 
-        Uri uri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
-        Log.v(LOG_TAG, uri.toString());
+        if (currentPetUri == null) {
+            Uri uri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+            Log.v(LOG_TAG, uri.toString());
 
-        long newRowId = ContentUris.parseId(uri);
+            long newRowId = ContentUris.parseId(uri);
 
-        if (newRowId != -1) {
-            Toast.makeText(this, getString(R.string.editor_insert_pet_successful), Toast.LENGTH_SHORT).show();
+            if (newRowId != -1) {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_successful), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
+            }
+
         } else {
-            Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
+            int rowAffected = getContentResolver().update(currentPetUri, values, null, null);
+
+            if (rowAffected == 0) {
+                Toast.makeText(this, getString(R.string.editor_insert_pet_failed), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, getString(R.string.editor_update_pet_successful), Toast.LENGTH_SHORT).show();
+            }
         }
+
+
+
+
+
     }
 
     @Override
